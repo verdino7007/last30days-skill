@@ -37,6 +37,8 @@ TRANSCRIPT_LIMITS = {
 TRANSCRIPT_MAX_WORDS = 5000
 
 from . import http, log, subproc
+from .query import extract_core_subject, expand_queries, infer_query_intent, YOUTUBE_NOISE
+from .query import infer_query_intent as _infer_query_intent  # noqa: F811 — back-compat alias
 from .relevance import token_overlap_relevance as _compute_relevance
 
 
@@ -174,78 +176,27 @@ def _extract_core_subject(topic: str) -> str:
     NOTE: 'tips', 'tricks', 'tutorial', 'guide', 'review', 'reviews'
     are intentionally KEPT — they're YouTube content types that improve search.
     """
-    from .query import extract_core_subject
-    # YouTube-specific noise set: smaller than default, keeps content-type words
-    _YT_NOISE = frozenset({
-        'best', 'top', 'good', 'great', 'awesome', 'killer',
-        'latest', 'new', 'news', 'update', 'updates',
-        'trending', 'hottest', 'popular', 'viral',
-        'practices', 'features',
-        'recommendations', 'advice',
-        'prompt', 'prompts', 'prompting',
-        'methods', 'strategies', 'approaches',
-        # Temporal/meta words — planner generates these but they don't
-        # appear in YouTube titles, so strip them for better search.
-        'last', 'days', 'recent', 'recently', 'month', 'week',
-        'january', 'february', 'march', 'april', 'may', 'june',
-        'july', 'august', 'september', 'october', 'november', 'december',
-        '2025', '2026', '2027',
-        'music', 'public', 'appearances', 'developments', 'discussions', 'coverage',
-    })
-    return extract_core_subject(topic, noise=_YT_NOISE)
+    return extract_core_subject(topic, noise=YOUTUBE_NOISE)
 
 
-def _infer_query_intent(topic: str) -> str:
-    """Tiny local intent classifier for YouTube query expansion."""
-    text = topic.lower().strip()
-    if re.search(r"\b(vs|versus|compare|difference between)\b", text):
-        return "comparison"
-    if re.search(r"\b(how to|tutorial|guide|setup|step by step|deploy|install|configure|troubleshoot|error|fix|debug)\b", text):
-        return "how_to"
-    if re.search(r"\b(thoughts on|worth it|should i|opinion|review)\b", text):
-        return "opinion"
-    if re.search(r"\b(pricing|feature|features|best .* for)\b", text):
-        return "product"
-    return "breaking_news"
+_YOUTUBE_INTENT_VARIANTS = {
+    "opinion": "review OR reaction OR breakdown",
+    "product": "review OR comparison OR unboxing",
+    "comparison": "vs OR compared OR head to head",
+    "how_to": "tutorial OR guide OR explained",
+    "breaking_news": "review OR reaction OR breakdown",
+}
 
 
 def expand_youtube_queries(topic: str, depth: str) -> List[str]:
-    """Generate multiple YouTube search queries from a topic.
-
-    Mirrors reddit.py's expand_reddit_queries() pattern:
-    1. Extract core subject (strip noise words)
-    2. Include original topic if different from core
-    3. Add intent-specific OR-joined content-type variants
-    4. Cap by depth: 1 for quick, 2 for default, 3 for deep
-
-    Returns 1-3 query strings depending on depth.
-    """
-    core = _extract_core_subject(topic)
-    queries = [core]
-
-    # Include cleaned original topic as variant if different from core
-    original_clean = topic.strip().rstrip('?!.')
-    if core.lower() != original_clean.lower() and len(original_clean.split()) <= 8:
-        queries.append(original_clean)
-
-    qtype = _infer_query_intent(topic)
-
-    # Intent-specific YouTube content-type variants
-    if qtype == "opinion":
-        queries.append(f"{core} review OR reaction OR breakdown")
-    elif qtype == "product":
-        queries.append(f"{core} review OR comparison OR unboxing")
-    elif qtype == "comparison":
-        queries.append(f"{core} vs OR compared OR head to head")
-    elif qtype == "how_to":
-        queries.append(f"{core} tutorial OR guide OR explained")
-    else:
-        # breaking_news / general — YouTube content types
-        queries.append(f"{core} review OR reaction OR breakdown")
-
-    # Deep depth: add full-length content variant
-    if depth == "deep":
-        queries.append(f"{core} full OR complete OR official")
+    """Generate multiple YouTube search queries from a topic."""
+    return expand_queries(
+        topic,
+        depth,
+        extract_core_fn=_extract_core_subject,
+        intent_variants=_YOUTUBE_INTENT_VARIANTS,
+        deep_variant="full OR complete OR official",
+    )
 
     # Cap by depth budget
     caps = {"quick": 1, "default": 2, "deep": 3}

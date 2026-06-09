@@ -7,21 +7,13 @@ Requires SCRAPECREATORS_API_KEY in config (same key as TikTok + Instagram).
 API docs: https://scrapecreators.com/docs
 """
 
-import re
-import sys
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait as futures_wait
 from typing import Any, Dict, List, Optional, Set
 
-def _first_of(*values, default=None):
-    """Return first value that is not None."""
-    for v in values:
-        if v is not None:
-            return v
-    return default
-
 from . import dates, http, log
+from .text import first_of as _first_of
 
 SCRAPECREATORS_BASE = "https://api.scrapecreators.com/v1/reddit"
 
@@ -47,22 +39,11 @@ DEPTH_CONFIG = {
     },
 }
 
-from .query import extract_core_subject as _query_extract
+from .query import extract_core_subject as _query_extract, infer_query_intent as _infer_query_intent, REDDIT_NOISE
 from .relevance import token_overlap_relevance
 
-# Reddit-specific noise words (preserves original smaller set)
-NOISE_WORDS = frozenset({
-    'best', 'top', 'good', 'great', 'awesome', 'killer',
-    'latest', 'new', 'news', 'update', 'updates',
-    'trending', 'hottest', 'popular',
-    'practices', 'features', 'tips',
-    'recommendations', 'advice',
-    'prompt', 'prompts', 'prompting',
-    'methods', 'strategies', 'approaches',
-    'how', 'to', 'the', 'a', 'an', 'for', 'with',
-    'of', 'in', 'on', 'is', 'are', 'what', 'which',
-    'guide', 'tutorial', 'using',
-})
+# Preserve module-level alias for any external callers.
+NOISE_WORDS = REDDIT_NOISE
 
 
 def _log(msg: str):
@@ -74,7 +55,7 @@ def _extract_core_subject(topic: str) -> str:
 
     Strips meta/research words to keep only the core product/concept name.
     """
-    return _query_extract(topic, noise=NOISE_WORDS)
+    return _query_extract(topic, noise=REDDIT_NOISE)
 
 
 def expand_reddit_queries(topic: str, depth: str) -> List[str]:
@@ -116,22 +97,6 @@ def expand_reddit_queries(topic: str, depth: str) -> List[str]:
         queries.append(f"{core} issues OR problems OR bug OR broken")
 
     return queries
-
-
-def _infer_query_intent(topic: str) -> str:
-    """Tiny local fallback for Reddit query expansion only."""
-    text = topic.lower().strip()
-    if re.search(r"\b(vs|versus|compare|difference between)\b", text):
-        return "comparison"
-    if re.search(r"\b(how to|tutorial|guide|setup|step by step|deploy|install|configuration|configure|troubleshoot|troubleshooting|error|errors|fix|debug)\b", text):
-        return "how_to"
-    if re.search(r"\b(thoughts on|worth it|should i|opinion|review)\b", text):
-        return "opinion"
-    if re.search(r"\b(pricing|feature|features|best .* for)\b", text):
-        return "product"
-    if re.search(r"\b(predict|prediction|odds|forecast|chance)\b", text):
-        return "prediction"
-    return "breaking_news"
 
 
 # Known utility/meta subreddits that match queries but aren't discussion subs.

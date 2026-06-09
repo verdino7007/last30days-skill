@@ -12,6 +12,8 @@ import sys
 from typing import Any, Dict, List, Optional, Set
 
 from . import dates, http, log
+from .query import extract_core_subject, VIDEO_NOISE
+from .relevance import token_overlap_relevance as _compute_relevance
 
 SCRAPECREATORS_BASE = "https://api.scrapecreators.com/v1/pinterest"
 
@@ -22,22 +24,10 @@ DEPTH_CONFIG = {
     "deep":    {"results_per_page": 40},
 }
 
-from .relevance import token_overlap_relevance as _compute_relevance
-
 
 def _extract_core_subject(topic: str) -> str:
     """Extract core subject from verbose query for Pinterest search."""
-    from .query import extract_core_subject
-    _PINTEREST_NOISE = frozenset({
-        'best', 'top', 'good', 'great', 'awesome', 'killer',
-        'latest', 'new', 'news', 'update', 'updates',
-        'trending', 'hottest', 'popular', 'viral',
-        'practices', 'features',
-        'recommendations', 'advice',
-        'prompt', 'prompts', 'prompting',
-        'methods', 'strategies', 'approaches',
-    })
-    return extract_core_subject(topic, noise=_PINTEREST_NOISE)
+    return extract_core_subject(topic, noise=VIDEO_NOISE)
 
 
 def _log(msg: str):

@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from . import http, log
+from .query import extract_core_subject, SOCIAL_NOISE
 
 BSKY_SESSION_URL = "https://bsky.social/xrpc/com.atproto.server.createSession"
 _DEFAULT_BSKY_SEARCH_HOST = "api.bsky.app"
@@ -158,14 +159,7 @@ def _reset_session_cache() -> None:
 
 def _extract_core_subject(topic: str) -> str:
     """Extract core subject from verbose query for Bluesky search."""
-    from .query import extract_core_subject
-    _BSKY_NOISE = frozenset({
-        'best', 'top', 'good', 'great', 'awesome',
-        'latest', 'new', 'news', 'update', 'updates',
-        'trending', 'hottest', 'popular', 'viral',
-        'practices', 'features', 'recommendations', 'advice',
-    })
-    return extract_core_subject(topic, noise=_BSKY_NOISE)
+    return extract_core_subject(topic, noise=SOCIAL_NOISE)
 
 
 def _parse_date(item: Dict[str, Any]) -> Optional[str]:

@@ -5,7 +5,6 @@ No API key needed - just HTTP calls via stdlib urllib.
 """
 
 import datetime
-import html
 import math
 import sys
 import time
@@ -17,6 +16,7 @@ import re
 from . import http, log
 from .query import extract_core_subject
 from .relevance import token_overlap_relevance
+from .text import strip_html as _strip_html_shared
 
 # Common HN prefixes that can cause false-positive keyword matches
 _HN_PREFIXES = re.compile(r"^(Tell HN|Show HN|Ask HN|Launch HN)\s*:\s*", re.IGNORECASE)
@@ -58,11 +58,7 @@ def _unix_to_date(ts: int) -> str:
 
 def _strip_html(text: str) -> str:
     """Strip HTML tags and decode entities from HN comment text."""
-    import re
-    text = html.unescape(text)
-    text = re.sub(r'<p>', '\n', text)
-    text = re.sub(r'<[^>]+>', '', text)
-    return text.strip()
+    return _strip_html_shared(text)
 
 
 def search_hackernews(

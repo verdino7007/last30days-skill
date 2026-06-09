@@ -12,6 +12,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from . import dates, http, log
+from .query import extract_core_subject, SOCIAL_NOISE
 from .relevance import token_overlap_relevance as _compute_relevance
 
 SCRAPECREATORS_BASE = "https://api.scrapecreators.com/v1/threads"
@@ -30,14 +31,7 @@ def _log(msg: str):
 
 def _extract_core_subject(topic: str) -> str:
     """Extract core subject from verbose query for Threads search."""
-    from .query import extract_core_subject
-    _THREADS_NOISE = frozenset({
-        'best', 'top', 'good', 'great', 'awesome',
-        'latest', 'new', 'news', 'update', 'updates',
-        'trending', 'hottest', 'popular', 'viral',
-        'practices', 'features', 'recommendations', 'advice',
-    })
-    return extract_core_subject(topic, noise=_THREADS_NOISE)
+    return extract_core_subject(topic, noise=SOCIAL_NOISE)
 
 
 def _parse_date(item: Dict[str, Any]) -> Optional[str]:

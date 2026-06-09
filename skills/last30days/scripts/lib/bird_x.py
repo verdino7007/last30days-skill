@@ -17,19 +17,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from .relevance import token_overlap_relevance as _compute_relevance
+from .text import first_of as _first_of
 
 # How many times to retry the bird-search subprocess when stdout is non-JSON
 # (typically an HTML anti-bot interstitial from Twitter's edge).
 MAX_JSON_DECODE_RETRIES = 2
 JSON_DECODE_RETRY_DELAY = 5.0  # seconds between retry attempts
 
-
-def _first_of(*values):
-    """Return first value that is not None."""
-    for v in values:
-        if v is not None:
-            return v
-    return None
 
 # Path to the vendored bird-search wrapper
 _BIRD_SEARCH_MJS = Path(__file__).parent / "vendor" / "bird-search" / "bird-search.mjs"
