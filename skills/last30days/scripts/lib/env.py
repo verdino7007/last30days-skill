@@ -433,7 +433,8 @@ def extract_browser_credentials(config: dict[str, Any]) -> dict[str, str]:
         for browser in browsers:
             try:
                 cookies = cookie_extract.extract_cookies(browser, spec["domain"], spec["cookies"])
-            except Exception:
+            except Exception as exc:
+                sys.stderr.write(f"[last30days] Cookie extraction failed for {browser}/{spec['domain']}: {type(exc).__name__}: {exc}\n")
                 continue
             if cookies:
                 for cookie_name, env_key in spec["mapping"].items():
@@ -663,7 +664,9 @@ def is_xiaohongshu_available(config: dict[str, Any]) -> bool:
             if isinstance(login, dict) else False
         )
         return bool(is_logged_in)
-    except (OSError, http.HTTPError):
+    except (OSError, http.HTTPError) as exc:
+        sys.stderr.write(f"[last30days] Xiaohongshu check failed: {type(exc).__name__}: {exc}\n")
+        sys.stderr.flush()
         return False
     except Exception as exc:
         sys.stderr.write(

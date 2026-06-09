@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import signal
 import subprocess
+import sys
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
@@ -74,8 +75,8 @@ def run_with_timeout(
     if on_pid is not None:
         try:
             on_pid(proc.pid)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"[subproc] on_pid callback failed: {type(exc).__name__}: {exc}", file=sys.stderr)
 
     try:
         stdout, stderr = proc.communicate(timeout=timeout)

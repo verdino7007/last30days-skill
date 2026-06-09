@@ -4,6 +4,7 @@ Computes a quality score based on 5 core sources and builds
 a nudge message describing what the user missed and how to fix it.
 """
 
+import sys
 from typing import List
 
 
@@ -36,7 +37,8 @@ def _is_youtube_active(config: dict, research_results: dict) -> bool:
     try:
         from . import youtube_yt
         has_ytdlp = youtube_yt.is_ytdlp_installed()
-    except Exception:
+    except Exception as exc:
+        print(f"[QualityNudge] Failed to check yt-dlp status: {type(exc).__name__}: {exc}", file=sys.stderr)
         has_ytdlp = False
     if not has_ytdlp:
         return False
@@ -171,7 +173,8 @@ def compute_quality_score(config: dict, research_results: dict) -> dict:
         try:
             from . import youtube_yt
             has_ytdlp = youtube_yt.is_ytdlp_installed()
-        except Exception:
+        except Exception as exc:
+            print(f"[QualityNudge] Failed to check yt-dlp status: {type(exc).__name__}: {exc}", file=sys.stderr)
             has_ytdlp = False
         if has_ytdlp and research_results.get("youtube_error"):
             core_errored.append("youtube")

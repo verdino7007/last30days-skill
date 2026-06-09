@@ -371,7 +371,8 @@ def poll_device_auth(
                 continue
             logger.warning("Device auth poll error: %s", exc)
             return None
-        except (URLError, OSError):
+        except (URLError, OSError) as exc:
+            logger.debug("Device auth poll network error (retrying): %s", exc)
             continue
 
         if data.get("access_token"):
