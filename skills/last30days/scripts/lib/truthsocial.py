@@ -10,6 +10,8 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from . import http, log
+from .query import extract_core_subject, SOCIAL_NOISE
+from .text import strip_html as _strip_html_shared
 
 TRUTHSOCIAL_SEARCH_URL = "https://truthsocial.com/api/v2/search"
 
@@ -24,23 +26,14 @@ def _log(msg: str):
     log.source_log("TruthSocial", msg)
 
 
-def _strip_html(html: str) -> str:
+def _strip_html(text: str) -> str:
     """Strip HTML tags from Truth Social post content."""
-    text = re.sub(r'<br\s*/?>', '\n', html)
-    text = re.sub(r'<[^>]+>', '', text)
-    return text.strip()
+    return _strip_html_shared(text, decode_entities=False)
 
 
 def _extract_core_subject(topic: str) -> str:
     """Extract core subject from verbose query for Truth Social search."""
-    from .query import extract_core_subject
-    _TS_NOISE = frozenset({
-        'best', 'top', 'good', 'great', 'awesome',
-        'latest', 'new', 'news', 'update', 'updates',
-        'trending', 'hottest', 'popular', 'viral',
-        'practices', 'features', 'recommendations', 'advice',
-    })
-    return extract_core_subject(topic, noise=_TS_NOISE)
+    return extract_core_subject(topic, noise=SOCIAL_NOISE)
 
 
 def _parse_date(status: Dict[str, Any]) -> Optional[str]:

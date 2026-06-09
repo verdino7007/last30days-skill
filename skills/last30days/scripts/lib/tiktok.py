@@ -8,10 +8,11 @@ API docs: https://scrapecreators.com/docs
 """
 
 import re
-import sys
 from typing import Any, Dict, List, Optional, Set
 
 from . import dates, http, log
+from .query import extract_core_subject, expand_queries, infer_query_intent, VIDEO_NOISE
+from .relevance import token_overlap_relevance as _compute_relevance
 
 SCRAPECREATORS_BASE = "https://api.scrapecreators.com/v1/tiktok"
 
@@ -25,79 +26,30 @@ DEPTH_CONFIG = {
 # Max words to keep from each caption
 CAPTION_MAX_WORDS = 500
 
-from .relevance import token_overlap_relevance as _compute_relevance
-
 
 def _extract_core_subject(topic: str) -> str:
     """Extract core subject from verbose query for TikTok search."""
-    from .query import extract_core_subject
-    _TIKTOK_NOISE = frozenset({
-        'best', 'top', 'good', 'great', 'awesome', 'killer',
-        'latest', 'new', 'news', 'update', 'updates',
-        'trending', 'hottest', 'popular', 'viral',
-        'practices', 'features',
-        'recommendations', 'advice',
-        'prompt', 'prompts', 'prompting',
-        'methods', 'strategies', 'approaches',
-    })
-    return extract_core_subject(topic, noise=_TIKTOK_NOISE)
+    return extract_core_subject(topic, noise=VIDEO_NOISE)
 
 
-def _infer_query_intent(topic: str) -> str:
-    """Tiny local intent classifier for TikTok query expansion."""
-    text = topic.lower().strip()
-    if re.search(r"\b(vs|versus|compare|difference between)\b", text):
-        return "comparison"
-    if re.search(r"\b(how to|tutorial|guide|setup|step by step|deploy|install)\b", text):
-        return "how_to"
-    if re.search(r"\b(thoughts on|worth it|should i|opinion|review)\b", text):
-        return "opinion"
-    if re.search(r"\b(pricing|feature|features|best .* for)\b", text):
-        return "product"
-    return "breaking_news"
+_TIKTOK_INTENT_VARIANTS = {
+    "breaking_news": "edit OR reaction OR trend",
+    "opinion": "edit OR reaction OR trend",
+    "product": "review OR haul OR unboxing",
+    "comparison": "vs OR compared OR which is better",
+    "how_to": "tutorial OR hack OR tip",
+}
 
 
 def expand_tiktok_queries(topic: str, depth: str) -> List[str]:
-    """Generate multiple TikTok search queries from a topic.
-
-    Mirrors reddit.py's expand_reddit_queries() pattern:
-    1. Extract core subject (strip noise words)
-    2. Include original topic if different from core
-    3. Add intent-specific OR-joined content-type variants
-    4. Cap by depth: 1 for quick, 2 for default, 3 for deep
-
-    Returns 1-3 query strings depending on depth.
-    """
-    core = _extract_core_subject(topic)
-    queries = [core]
-
-    # Include cleaned original topic as variant if different from core
-    original_clean = topic.strip().rstrip('?!.')
-    if core.lower() != original_clean.lower() and len(original_clean.split()) <= 8:
-        queries.append(original_clean)
-
-    qtype = _infer_query_intent(topic)
-
-    # Intent-specific TikTok content-type variants
-    if qtype in ("breaking_news", "opinion"):
-        queries.append(f"{core} edit OR reaction OR trend")
-    elif qtype == "product":
-        queries.append(f"{core} review OR haul OR unboxing")
-    elif qtype == "comparison":
-        queries.append(f"{core} vs OR compared OR which is better")
-    elif qtype == "how_to":
-        queries.append(f"{core} tutorial OR hack OR tip")
-    else:
-        queries.append(f"{core} edit OR reaction OR trend")
-
-    # Deep depth: add viral content variant
-    if depth == "deep":
-        queries.append(f"{core} viral OR fyp OR trending")
-
-    # Cap by depth budget
-    caps = {"quick": 1, "default": 2, "deep": 3}
-    cap = caps.get(depth, 2)
-    return queries[:cap]
+    """Generate multiple TikTok search queries from a topic."""
+    return expand_queries(
+        topic,
+        depth,
+        extract_core_fn=_extract_core_subject,
+        intent_variants=_TIKTOK_INTENT_VARIANTS,
+        deep_variant="viral OR fyp OR trending",
+    )
 
 
 def _log(msg: str):
