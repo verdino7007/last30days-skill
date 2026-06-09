@@ -101,7 +101,7 @@ def main():
         print("\n\nTimed out waiting for authorization.")
         sys.exit(1)
 
-    print(f"\n\nAuthorized! Access token: {access_token[:12]}...\n")
+    print(f"\n\nAuthorized! Access token: {access_token[:8]}...{access_token[-4:]}\n")
 
     # Step 3: Fetch profile
     print("Fetching profile...")
@@ -109,17 +109,23 @@ def main():
         profile = _get(f"{BASE}/profile", access_token)
     except (HTTPError, URLError) as e:
         print(f"Failed to fetch profile: {e}")
-        print(f"(access_token was: {access_token})")
+        print(f"(access_token starts with: {access_token[:8]}...)")
         sys.exit(1)
 
-    print(f"\nProfile response:\n{json.dumps(profile, indent=2)}\n")
+    # Redact sensitive fields before printing
+    safe_profile = {
+        k: (f"{v[:8]}...{v[-4:]}" if k in ("api_key", "access_token") and isinstance(v, str) and len(v) > 12 else v)
+        for k, v in profile.items()
+    }
+    print(f"\nProfile response:\n{json.dumps(safe_profile, indent=2)}\n")
 
     api_key = profile.get("api_key")
     if api_key:
         print("=" * 50)
-        print(f"Your ScrapeCreators API key: {api_key}")
+        print(f"Your ScrapeCreators API key: {api_key[:8]}...{api_key[-4:]}")
         print("=" * 50)
-        print(f"\nTo use it: echo 'SCRAPECREATORS_API_KEY={api_key}' >> ~/.config/last30days/.env")
+        print(f"\nTo use it: echo 'SCRAPECREATORS_API_KEY=<your-key>' >> ~/.config/last30days/.env")
+        print("(The full key was shown above — copy it from your terminal.)")
     else:
         print("No api_key in profile response. Full response printed above.")
 

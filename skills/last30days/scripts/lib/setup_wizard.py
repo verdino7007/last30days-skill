@@ -7,6 +7,7 @@ presents it), but this module provides the detection and setup actions.
 
 import json
 import logging
+import os
 import shutil
 import subprocess
 import time
@@ -140,6 +141,13 @@ def write_setup_config(env_path: Path, from_browser: str = "auto") -> bool:
             if existing_content and not existing_content.endswith("\n"):
                 f.write("\n")
             f.write("\n".join(lines_to_add) + "\n")
+
+        # Restrict file permissions so only the owner can read/write (secrets file).
+        if os.name != "nt":
+            try:
+                env_path.chmod(0o600)
+            except OSError:
+                pass
 
         return True
 

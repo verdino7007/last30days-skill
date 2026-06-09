@@ -33,12 +33,8 @@ jobs:
             --format requirements.txt \
             --output-file /tmp/last30days-requirements.txt
 
-      # Advisory-first: visibility before enforcement. This repo handles API keys,
-      # cookies, browser tokens, and local env files, so dependency CVEs should be
-      # visible in CI logs even before the project has a clean blocking baseline.
-      # Set continue-on-error: false once a clean baseline run is confirmed.
+      # Enforce dependency audit: blocks PRs with known-vulnerable pinned deps.
       - name: Run pip-audit against locked dependencies
-        continue-on-error: true
         run: uvx --python 3.12 pip-audit -r /tmp/last30days-requirements.txt --progress-spinner=off
 
   secret-scan:
@@ -50,11 +46,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Advisory-first: this reports verified secrets in pull requests and pushes to
-      # main, but does not block merges until maintainers confirm a clean baseline.
-      # The TruffleHog action automatically scans the PR range for pull_request
-      # events and the pushed commit range for push events.
-      # Set continue-on-error: false once a clean baseline run is confirmed.
+      # Secret scan: reports verified secrets in PRs and pushes.
+      # NOTE: continue-on-error kept true because trufflehog v3.95.2 docker
+      # image is currently missing from ghcr.io (manifest unknown). Once the
+      # version is bumped to a valid release, set continue-on-error: false.
       # Contributor policy: never commit real secrets in fixtures, tests, docs, or
       # examples; use obvious dummy values and env-based auth patterns instead.
       - name: Run TruffleHog OSS secret scan

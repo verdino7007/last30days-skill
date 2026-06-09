@@ -20,6 +20,11 @@ mise.toml
 .coverage
 htmlcov/
 
+# Secrets / env files (real keys live in ~/.config/last30days/.env, not the repo)
+.env
+.env.*
+!.env.example
+
 # Root vendor/ is accidental - real vendored client lives at scripts/lib/vendor/bird-search/
 /vendor/
 
