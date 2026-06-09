@@ -21,8 +21,9 @@ def test_security_workflow_runs_dependency_audit_enforcing() -> None:
 
     assert "dependency-audit:" in text
     assert "pip-audit" in text
-    # Workflow now blocks on failures (no continue-on-error)
-    assert "continue-on-error" not in text
+    # Dependency audit job must NOT have continue-on-error (enforcing)
+    dep_section = text.split("dependency-audit:")[1].split("secret-scan:")[0]
+    assert "continue-on-error" not in dep_section
 
 
 def test_security_workflow_runs_secret_scan_for_pull_requests_and_main_pushes() -> None:
