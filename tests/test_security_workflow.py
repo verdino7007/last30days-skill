@@ -16,13 +16,13 @@ def test_security_workflow_exists() -> None:
     assert WORKFLOW.is_file()
 
 
-def test_security_workflow_runs_dependency_audit_advisory_first() -> None:
+def test_security_workflow_runs_dependency_audit_enforcing() -> None:
     text = _workflow_text()
 
     assert "dependency-audit:" in text
     assert "pip-audit" in text
-    assert "continue-on-error: true" in text
-    assert "Set continue-on-error: false once a clean baseline run is confirmed" in text
+    # Workflow now blocks on failures (no continue-on-error)
+    assert "continue-on-error" not in text
 
 
 def test_security_workflow_runs_secret_scan_for_pull_requests_and_main_pushes() -> None:
@@ -35,11 +35,10 @@ def test_security_workflow_runs_secret_scan_for_pull_requests_and_main_pushes() 
     assert "--only-verified" in text
 
 
-def test_security_workflow_documents_advisory_policy() -> None:
+def test_security_workflow_documents_policy() -> None:
     text = _workflow_text()
 
-    assert "advisory-first" in text.lower()
-    assert "does not block merges" in text.lower()
+    assert "blocks" in text.lower()
     assert "fixtures" in text.lower()
     assert "env-based auth" in text.lower()
 
