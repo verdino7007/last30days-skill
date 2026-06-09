@@ -618,7 +618,8 @@ def enrich_with_comments(
             item = futures[future]
             try:
                 raw_comments = future.result(timeout=0)
-            except Exception:
+            except Exception as exc:
+                _log(f"Comment enrichment failed for {item.get('url', '?')}: {type(exc).__name__}: {exc}")
                 continue
             if not raw_comments:
                 continue

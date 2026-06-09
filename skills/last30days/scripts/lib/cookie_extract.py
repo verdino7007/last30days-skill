@@ -48,8 +48,8 @@ def _get_wsl_firefox_profiles_dir() -> Optional[Path]:
             ff_dir = user_dir / "AppData" / "Roaming" / "Mozilla" / "Firefox"
             if ff_dir.is_dir():
                 return ff_dir
-    except OSError:
-        pass
+    except OSError as exc:
+        logger.debug("WSL Firefox profile scan failed: %s", exc)
     return None
 
 
@@ -127,8 +127,8 @@ def _fallback_find_profile(profiles_dir: Path) -> Optional[Path]:
         for child in sorted(profiles_dir.iterdir()):
             if child.is_dir() and (child / "cookies.sqlite").is_file():
                 return child
-    except OSError:
-        pass
+    except OSError as exc:
+        logger.debug("Fallback profile scan failed for %s: %s", profiles_dir, exc)
     return None
 
 

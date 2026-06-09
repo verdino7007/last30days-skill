@@ -196,8 +196,10 @@ def _invoke_bird_subprocess(query: str, count: int, timeout: int):
             try:
                 from last30days import unregister_child_pid
                 unregister_child_pid(pid_holder[0])
-            except Exception:
+            except ImportError:
                 pass
+            except Exception as exc:
+                _log(f"Failed to unregister child PID {pid_holder[0]}: {type(exc).__name__}: {exc}")
 
     return result, None
 

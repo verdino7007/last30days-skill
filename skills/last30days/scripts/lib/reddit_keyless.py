@@ -125,8 +125,8 @@ def _enrich_one(post: Dict[str, Any]) -> Dict[str, Any]:
         if num is not None:
             post["num_comments"] = num
             post.setdefault("engagement", {})["num_comments"] = num
-    except Exception:
-        pass  # keep the post with whatever discovery gave us
+    except Exception as exc:
+        _log(f"Enrichment failed for {post.get('url', '?')}: {type(exc).__name__}: {exc}")
     return post
 
 
@@ -150,14 +150,16 @@ def _enrich(posts: List[Dict[str, Any]], depth: str) -> List[Dict[str, Any]]:
                 idx = futures[future]
                 try:
                     result_map[idx] = future.result(timeout=0)
-                except Exception:
+                except Exception as exc:
+                    _log(f"Enrich future failed for post {idx}: {type(exc).__name__}: {exc}")
                     result_map[idx] = to_enrich[idx]
             for future in not_done:
                 idx = futures[future]
                 result_map[idx] = to_enrich[idx]
                 future.cancel()
         enriched = [result_map[i] for i in range(len(to_enrich))]
-    except Exception:
+    except Exception as exc:
+        _log(f"Enrichment executor failed: {type(exc).__name__}: {exc}")
         enriched = to_enrich
 
     return enriched + rest
@@ -198,7 +200,8 @@ def _slot_priority(topic: str, posts: List[Dict[str, Any]]) -> List[Dict[str, An
         for post in posts:
             (matches if _matches(post) else misses).append(post)
         return matches + misses
-    except Exception:
+    except Exception as exc:
+        _log(f"Slot priority sorting failed: {type(exc).__name__}: {exc}")
         return posts
 
 

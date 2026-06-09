@@ -936,7 +936,8 @@ def _retrieve_stream(
         if which("yt-dlp"):
             try:
                 result = youtube_yt.search_and_transcribe(yt_query, from_date, to_date, depth=depth)
-            except Exception:
+            except Exception as exc:
+                sys.stderr.write(f"[YouTube] yt-dlp search failed, trying SC fallback: {type(exc).__name__}: {exc}\n")
                 result = None
         if (result is None or not result.get("items")) and env.is_youtube_sc_available(config):
             sc_token = config.get("SCRAPECREATORS_API_KEY", "")

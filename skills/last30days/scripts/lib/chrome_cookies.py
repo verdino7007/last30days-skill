@@ -168,8 +168,8 @@ def _get_db_version(cursor: sqlite3.Cursor) -> int:
         row = cursor.fetchone()
         if row:
             return int(row[0])
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Failed to read Chrome cookie DB version: %s", exc)
     return 0
 
 
@@ -303,8 +303,8 @@ def _find_brave_cookies_db() -> Optional[Path]:
             candidate = child / "Cookies"
             if candidate.exists():
                 return candidate
-    except OSError:
-        pass
+    except OSError as exc:
+        logger.debug("Failed to scan Brave profile directories: %s", exc)
 
     return None
 
